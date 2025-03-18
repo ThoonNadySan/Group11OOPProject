@@ -5,13 +5,14 @@ import models.Income;
 import models.Expense;
 
 import java.io.*;
+import java.time.ZoneId;
 import java.util.*;
 
 /**
- * FinanceManager:
- * - **Implements Interfaces**: Implements FinanceManagerInterface and FileOperations
- * - **Uses Collections**: Uses List<Transaction> to store transactions
- * - **Exception Handling**: Catches invalid inputs and ensures robust execution
+ * `FinanceManager`:
+ * - Implements Interfaces: Implements FinanceManagerInterface and FileOperations
+ * - Uses Collections: Uses List<Transaction> to store transactions
+ * - Exception Handling: Catches invalid inputs and ensures robust execution
  */
 public class FinanceManager {
     private List<Transaction> transactions;
@@ -19,13 +20,18 @@ public class FinanceManager {
     private double budget;
     private double totalIncome;
     private double totalExpenses;
-    private List<String> categories;
+    private List<String> incomeCategories;
+    private List<String> expenseCategories;
 
+    // Constructor
     public FinanceManager() {
         transactions = new ArrayList<>();
         scanner = new Scanner(System.in);
         budget = 0;
-        categories = new ArrayList<>(Arrays.asList("Salary", "Food", "Rent", "Entertainment"));
+
+        // Separate categories for Income and Expenses
+        incomeCategories = new ArrayList<>(Arrays.asList("Salary", "Bonus", "Investments"));
+        expenseCategories = new ArrayList<>(Arrays.asList("Food", "Rent", "Entertainment", "Bills", "Shopping"));
     }
 
     public void setBudget() {
@@ -34,6 +40,7 @@ public class FinanceManager {
         System.out.println("Budget set to: $" + budget);
     }
 
+    // Add a transaction
     public void addTransaction() {
         System.out.print("Enter transaction type (1-Income, 2-Expense): ");
         int type = getValidIntInput(1, 2);
@@ -44,7 +51,7 @@ public class FinanceManager {
         System.out.print("Enter amount: ");
         double amount = getValidDoubleInput();
 
-        String category = chooseCategory();
+        String category = chooseCategory(type);
 
         Transaction transaction;
         if (type == 1) {
@@ -76,14 +83,40 @@ public class FinanceManager {
         }
     }
 
+    // Display financial summary
     public void displaySummary() {
         double savings = totalIncome - totalExpenses;
         System.out.println("\n=== Financial Summary ===");
+        System.out.println("Budget: $" + budget);
         System.out.println("Total Income: $" + totalIncome);
         System.out.println("Total Expenses: $" + totalExpenses);
         System.out.println("Net Savings: $" + savings);
     }
 
+    // Delete a transaction
+    public void deleteTransaction() {
+        if (transactions.isEmpty()) {
+            System.out.println("No transactions to delete.");
+            return;
+        }
+
+        displayTransactions();
+        System.out.print("Enter the transaction number to delete: ");
+        int index = getValidIntInput(1, transactions.size());
+
+        Transaction transaction = transactions.remove(index - 1);
+
+        // Adjust totals
+        if (transaction instanceof Income) {
+            totalIncome -= transaction.getAmount();
+        } else {
+            totalExpenses -= transaction.getAmount();
+        }
+
+        System.out.println("Transaction deleted successfully!");
+    }
+
+    // Export transactions to CSV
     public void exportToCSV() {
         try (PrintWriter writer = new PrintWriter(new File("transactions.csv"))) {
             writer.println("Type,Description,Amount,Category,Date");
@@ -96,6 +129,26 @@ public class FinanceManager {
         }
     }
 
+    // Choose category based on transaction type
+    private String chooseCategory(int type) {
+        List<String> categories = (type == 1) ? incomeCategories : expenseCategories;
+        System.out.println("Choose a category:");
+        for (int i = 0; i < categories.size(); i++) {
+            System.out.println((i + 1) + ". " + categories.get(i));
+        }
+        System.out.println((categories.size() + 1) + ". Other (Create New Category)");
+
+        int choice = getValidIntInput(1, categories.size() + 1);
+        if (choice == categories.size() + 1) {
+            System.out.print("Enter new category name: ");
+            String newCategory = scanner.nextLine().trim();
+            categories.add(newCategory);
+            return newCategory;
+        }
+        return categories.get(choice - 1);
+    }
+
+    // Get valid integer input
     private int getValidIntInput(int min, int max) {
         while (true) {
             try {
@@ -110,6 +163,7 @@ public class FinanceManager {
         }
     }
 
+    // Get valid double input
     private double getValidDoubleInput() {
         while (true) {
             try {
@@ -134,33 +188,19 @@ public class FinanceManager {
         }
     }
 
-    private String chooseCategory() {
-        System.out.println("Choose a category:");
-        for (int i = 0; i < categories.size(); i++) {
-            System.out.println((i + 1) + ". " + categories.get(i));
-        }
-        System.out.println((categories.size() + 1) + ". Other (Create New Category)");
-
-        int choice = getValidIntInput(1, categories.size() + 1);
-        if (choice == categories.size() + 1) {
-            System.out.print("Enter new category name: ");
-            String newCategory = scanner.nextLine().trim();
-            categories.add(newCategory);
-            return newCategory;
-        }
-        return categories.get(choice - 1);
-    }
-
+    // Save transactions to file
     public void saveToFile(String filename) throws IOException {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))) {
             oos.writeObject(transactions);
             oos.writeDouble(budget);
             oos.writeDouble(totalIncome);
             oos.writeDouble(totalExpenses);
-            oos.writeObject(categories);
+            oos.writeObject(incomeCategories);
+            oos.writeObject(expenseCategories);
         }
     }
 
+    // Load transactions from file
     @SuppressWarnings("unchecked")
     public void loadFromFile(String filename) throws IOException, ClassNotFoundException {
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
@@ -168,10 +208,12 @@ public class FinanceManager {
             budget = ois.readDouble();
             totalIncome = ois.readDouble();
             totalExpenses = ois.readDouble();
-            categories = (List<String>) ois.readObject();
+            incomeCategories = (List<String>) ois.readObject();
+            expenseCategories = (List<String>) ois.readObject();
         }
     }
 
+    // Run the finance tracker
     public void run() {
         try {
             loadFromFile("finance_data.ser");
@@ -184,20 +226,22 @@ public class FinanceManager {
             System.out.println("1. Set Budget");
             System.out.println("2. Add Transaction");
             System.out.println("3. View Transactions");
-            System.out.println("4. View Summary");
-            System.out.println("5. Export to CSV");
-            System.out.println("6. Save & Exit");
+            System.out.println("4. Delete Transaction");
+            System.out.println("5. View Summary");
+            System.out.println("6. Export to CSV");
+            System.out.println("7. Save & Exit");
             System.out.print("Choose an option: ");
 
-            int choice = getValidIntInput(1, 6);
+            int choice = getValidIntInput(1, 7);
 
             switch (choice) {
                 case 1 -> setBudget();
                 case 2 -> addTransaction();
                 case 3 -> displayTransactions();
-                case 4 -> displaySummary();
-                case 5 -> exportToCSV();
-                case 6 -> {
+                case 4 -> deleteTransaction();
+                case 5 -> displaySummary();
+                case 6 -> exportToCSV();
+                case 7 -> {
                     try {
                         saveToFile("finance_data.ser");
                         System.out.println("Data saved. Exiting...");
