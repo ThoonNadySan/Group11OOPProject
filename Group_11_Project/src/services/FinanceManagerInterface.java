@@ -7,6 +7,6 @@ public interface FinanceManagerInterface extends FileOperations {
     void addTransaction();
     void displayTransactions();
     void displaySummary();
-    //void editTransaction();
+    void deleteTransaction();
     void exportToCSV();
 }
