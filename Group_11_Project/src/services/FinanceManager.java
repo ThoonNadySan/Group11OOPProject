@@ -45,13 +45,13 @@ public class FinanceManager {
         System.out.print("Enter transaction type (1-Income, 2-Expense): ");
         int type = getValidIntInput(1, 2);
 
-        System.out.print("Enter description: ");
-        String description = getValidDescription();
+        String category = chooseCategory(type);
 
         System.out.print("Enter amount: ");
         double amount = getValidDoubleInput();
 
-        String category = chooseCategory(type);
+        System.out.print("Enter description: ");
+        String description = getValidDescription();
 
         Transaction transaction;
         if (type == 1) {
@@ -65,8 +65,11 @@ public class FinanceManager {
         transactions.add(transaction);
         System.out.println("Transaction added successfully!");
 
-        if (totalExpenses > budget * 0.9) {
+        if (totalExpenses > budget * 0.9 && totalExpenses <= budget) {
             System.out.println("⚠ Warning: Your expenses are close to exceeding your budget!");
+        }
+        else if(totalExpenses > budget) {
+            System.out.println("⚠ Warning: You have exceeded your budget!");
         }
     }
 
@@ -137,6 +140,7 @@ public class FinanceManager {
             System.out.println((i + 1) + ". " + categories.get(i));
         }
         System.out.println((categories.size() + 1) + ". Other (Create New Category)");
+        System.out.print("Enter category: ");
 
         int choice = getValidIntInput(1, categories.size() + 1);
         if (choice == categories.size() + 1) {
@@ -235,13 +239,13 @@ public class FinanceManager {
             int choice = getValidIntInput(1, 7);
 
             switch (choice) {
-                case 1 -> setBudget();
-                case 2 -> addTransaction();
-                case 3 -> displayTransactions();
-                case 4 -> deleteTransaction();
-                case 5 -> displaySummary();
-                case 6 -> exportToCSV();
-                case 7 -> {
+                case 1: setBudget(); break;
+                case 2: addTransaction(); break;
+                case 3: displayTransactions(); break;
+                case 4: deleteTransaction(); break;
+                case 5: displaySummary(); break;
+                case 6: exportToCSV(); break;
+                case 7: {
                     try {
                         saveToFile("finance_data.ser");
                         System.out.println("Data saved. Exiting...");
